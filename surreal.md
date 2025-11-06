@@ -1,47 +1,62 @@
-SurrealDB Advanced Graph Queries - Complete Guide
-Table of Contents
-Basic Graph Concepts
+# SurrealDB Advanced Graph Queries - Complete Guide
 
-Relationship Creation & Management
+## Table of Contents
+- [Basic Graph Concepts](#basic-graph-concepts)
+- [Relationship Creation & Management](#relationship-creation--management)
+- [Graph Traversal Queries](#graph-traversal-queries)
+- [Recursive Graph Algorithms](#recursive-graph-algorithms)
+- [Bidirectional Relationships](#bidirectional-relationships)
+- [Relationship Metadata & Filtering](#relationship-metadata--filtering)
+- [Advanced Pattern Matching](#advanced-pattern-matching)
+- [Network Analysis](#network-analysis)
+- [Performance Optimization](#performance-optimization)
 
-Graph Traversal Queries
+## Basic Graph Concepts
 
-Recursive Graph Algorithms
+### Graph Structure in SurrealDB
 
-Bidirectional Relationships
-
-Relationship Metadata & Filtering
-
-Advanced Pattern Matching
-
-Network Analysis
-
-Performance Optimization
-
-Basic Graph Concepts
-Graph Structure in SurrealDB
-sql
--- Nodes (Vertices)
+#### Nodes (Vertices)
+```sql
+-- Creating person nodes
 CREATE person:alice SET name = "Alice";
 CREATE person:bob SET name = "Bob";
 CREATE person:charlie SET name = "Charlie";
+```
 
--- Edges (Relationships)
+#### Edges (Relationships)
+```sql
+-- Creating relationships between nodes
 RELATE person:alice->knows->person:bob;
 RELATE person:bob->knows->person:charlie;
-Understanding Edge Tables
-sql
--- Edge tables store relationships
-SELECT * FROM knows;
--- Returns: id, in, out fields automatically created
+```
 
--- Edge tables can have additional fields
+### Understanding Edge Tables
+
+Edge tables in SurrealDB automatically track relationships between nodes. They include standard fields like `id`, `in`, and `out`.
+
+```sql
+-- View all relationships in the 'knows' edge table
+SELECT * FROM knows;
+
+-- Example output:
+-- id | in          | out           | created_at
+-- ---|-------------|---------------|-----------
+-- 1  | person:alice| person:bob    | 2023-01-01
+```
+
+#### Adding Metadata to Relationships
+```sql
+-- Edge tables can store additional metadata
 RELATE person:alice->works_with->person:bob SET 
     project = "Alpha",
     since = d'2024-01-01';
-Relationship Creation & Management
-Basic RELATE Statements
-sql
+```
+
+## Relationship Creation & Management
+
+### Basic RELATE Statements
+
+```sql
 -- Single relationship
 RELATE person:alice->follows->person:bob;
 
@@ -240,20 +255,35 @@ sql
 -- Temporal filtering
 SELECT ->knows[WHERE since > d'2023-01-01']->person 
 FROM person:alice;
+```
 
+#### Numeric Range Filtering
+
+```sql
 -- Numeric range filtering
 SELECT ->knows[WHERE closeness BETWEEN 0.5 AND 0.9]->person 
 FROM person:alice;
+```
 
+#### Array Filtering
+
+```sql
 -- Array filtering
 SELECT ->works_with[WHERE array::len(projects) > 2]->person 
 FROM person:alice;
+```
 
+#### Nested Object Filtering
+
+```sql
 -- Nested object filtering
 SELECT ->collaborates[WHERE success_metrics.client_satisfaction > 0.8]->person 
 FROM person:alice;
-Dynamic Relationship Queries
-sql
+```
+
+## Dynamic Relationship Queries
+
+```sql
 -- Parameterized relationship queries
 LET $min_closeness = 0.6;
 LET $start_date = d'2023-01-01';
@@ -262,9 +292,13 @@ SELECT
     ->knows[WHERE closeness > $min_closeness AND since > $start_date]->person AS recent_close_friends,
     ->knows[WHERE closeness <= $min_closeness]->person AS acquaintances
 FROM person:alice;
-Advanced Pattern Matching
-Complex Graph Patterns
-sql
+```
+
+## Advanced Pattern Matching
+
+### Complex Graph Patterns
+
+```sql
 -- Triangle detection (friends of friends who are also direct friends)
 SELECT 
     ->knows->person->knows->person AS potential_triangles
@@ -280,23 +314,33 @@ SELECT
         ->knows->person->knows->person.id
     ) AS mutual_friends
 FROM person:alice;
-Multi-hop Pattern Matching
-sql
+```
+
+### Multi-hop Pattern Matching
+
+```sql
 -- Find people with common interests through network
 SELECT 
     person:alice->knows->person->interested_in->topic AS topics_via_friends,
     person:alice->knows->person->knows->person->interested_in->topic AS topics_via_friends_of_friends
 FROM person:alice;
-Conditional Path Queries
-sql
+```
+
+### Conditional Path Queries
+
+```sql
 -- Find paths that meet specific criteria
 SELECT 
     ->knows->person[WHERE department = "engineering"]->works_on->project AS engineering_projects,
     ->knows->person[WHERE department = "design"]->works_on->project AS design_projects
 FROM person:alice;
-Network Analysis
-Centrality Metrics
-sql
+```
+
+## Network Analysis
+
+### Centrality Metrics
+
+```sql
 -- Degree centrality
 SELECT 
     id,
@@ -316,8 +360,11 @@ SELECT
 FROM person
 GROUP BY id
 ORDER BY weighted_out_degree DESC;
-Network Connectivity
-sql
+```
+
+### Network Connectivity
+
+```sql
 -- Component analysis
 LET $network = person:alice.{..+collect}->knows->person;
 SELECT {
@@ -337,8 +384,11 @@ SELECT
     count(->knows->person->knows->person) AS second_degree_connections
 FROM person
 WHERE array::len(->knows->person) = 1;  -- Potential bridges
-Temporal Network Analysis
-sql
+```
+
+### Temporal Network Analysis
+
+```sql
 -- Network growth over time
 SELECT 
     time::group(since, 'month') AS month,
@@ -354,9 +404,13 @@ SELECT
     math::mean(->knows[WHERE since != NONE].(time::now() - since)) AS avg_friendship_duration
 FROM person
 GROUP BY id;
-Performance Optimization
-Indexing Strategies
-sql
+```
+
+## Performance Optimization
+
+### Indexing Strategies
+
+```sql
 -- Basic indexes for common traversals
 DEFINE INDEX idx_knows_in ON knows FIELDS in;
 DEFINE INDEX idx_knows_out ON knows FIELDS out;
@@ -367,8 +421,11 @@ DEFINE INDEX idx_knows_strength ON knows FIELDS in, closeness;
 
 -- Unique constraints to prevent duplicates
 DEFINE INDEX unique_relationship ON knows FIELDS in, out UNIQUE;
-Query Optimization Techniques
-sql
+```
+
+### Query Optimization Techniques
+
+```sql
 -- Use depth limits for recursive queries
 person:alice.{1..5}->knows->person;  -- Better than unlimited
 
@@ -387,8 +444,11 @@ RETURN {
     colleagues: $colleagues,
     overlap: array::intersect($friends.id, $colleagues.id)
 };
-Monitoring and Analysis
-sql
+```
+
+### Monitoring and Analysis
+
+```sql
 -- Query performance analysis
 SELECT * FROM surrealql:explain 
 WHERE query = "person:alice.{..5}->knows->person";
@@ -400,23 +460,17 @@ SELECT
     math::mean(closeness) AS avg_closeness
 FROM knows 
 GROUP BY relationship_type;
-Best Practices Summary
-Always use depth limits in recursive queries to prevent infinite loops
+```
 
-Create appropriate indexes on edge tables for common traversal patterns
+## Best Practices Summary
 
-Use bidirectional queries (<->) for mutual relationships
-
-Add relationship metadata to enable rich filtering and analysis
-
-Implement unique constraints to prevent duplicate relationships
-
-Use timeouts for complex graph queries
-
-Filter early in traversal paths to improve performance
-
-Monitor query performance using surrealql:explain
-
-Use structured metadata for complex relationship data
-
-Batch related queries to reduce round trips
+- **Always use depth limits** in recursive queries to prevent infinite loops
+- **Create appropriate indexes** on edge tables for common traversal patterns
+- **Use bidirectional queries** (`<->`) for mutual relationships
+- **Add relationship metadata** to enable rich filtering and analysis
+- **Implement unique constraints** to prevent duplicate relationships
+- **Use timeouts** for complex graph queries
+- **Filter early** in traversal paths to improve performance
+- **Monitor query performance** using `surrealql:explain`
+- **Use structured metadata** for complex relationship data
+- **Batch related queries** to reduce round trips
