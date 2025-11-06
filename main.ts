@@ -1,18 +1,23 @@
 import { initDB } from "./surrealdb.js";
-import { seedData } from "./seed.js";
-import { getDirectConnections, getLinkedInDegrees } from "./linkdinBFS.js";
+import { phoneNetworkSchema } from "./familySchema.js";
+import { getKnownPeople, getPeopleWithPhones, getPersonPhone, traverseIPhoneNetworkBFS } from "./traverseNatively.js";
 
-await initDB();
-await seedData();
+async function main() {
+  await initDB();
+  await phoneNetworkSchema();
 
-const result = await getLinkedInDegrees("person:harry");
+  const connections = await getKnownPeople("person:karan");
+  console.log("Karan's connections:", connections);
 
-const getConnections = await getDirectConnections("person:sara");
-console.log("\nConnections:", getConnections);
+  const people = await getPeopleWithPhones(["person:karan", "person:meera", "person:neel"]);
+  console.log("People with phones:", people);
 
-console.log("\n1st-degree:", result.first);
-console.log("2nd-degree:", result.second);
-console.log("3rd-degree:", result.third);
-console.log("4th-degree:", result.fourth);
-console.log("5th-degree:", result.fifth);
-console.log("6th-degree:", result.sixth);
+ 
+  const bfsResult = await traverseIPhoneNetworkBFS("person:karan", 3);
+  console.log("BFS Result:", JSON.stringify(bfsResult, null, 3));
+
+  const phone = await getPersonPhone("person:karan");
+  console.log("Karan's phone:", phone);
+}
+
+main().catch(console.error);
